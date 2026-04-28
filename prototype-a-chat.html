@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Canal Resources – Chat / Chat de Recursos del Canal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #1565C0;
+    --primary-dark: #0D47A1;
+    --accent: #FF8F00;
+    --green: #2E7D32;
+    --bg: #ECE5DD;
+    --bubble-user: #DCF8C6;
+    --bubble-bot: #FFFFFF;
+    --text: #111;
+    --muted: #666;
+    --card-border: #E0E0E0;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .avatar {
+    width: 42px; height: 42px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .header-info { flex: 1; }
+  .header-name { font-weight: 700; font-size: 16px; }
+  .header-sub { font-size: 12px; opacity: 0.85; }
+  .lang-toggle {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .lang-toggle:hover { background: rgba(255,255,255,0.3); }
+
+  /* PROTOTYPE BADGE */
+  .proto-badge {
+    background: #FFF3CD;
+    color: #856404;
+    text-align: center;
+    font-size: 11px;
+    padding: 5px 12px;
+    font-weight: 500;
+    border-bottom: 1px solid #FFEAA7;
+  }
+
+  /* CHAT WINDOW */
+  .chat-window {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 160px;
+  }
+
+  /* MESSAGES */
+  .msg-row { display: flex; align-items: flex-end; gap: 8px; }
+  .msg-row.user { flex-direction: row-reverse; }
+  .bot-icon {
+    width: 32px; height: 32px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .bubble {
+    max-width: 82%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  .bubble.bot {
+    background: var(--bubble-bot);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+  .bubble.user {
+    background: var(--bubble-user);
+    border-bottom-right-radius: 4px;
+    color: var(--text);
+  }
+  .bubble .timestamp {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  /* RESOURCE CARD (inside bubble) */
+  .resource-card {
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px;
+    margin: 8px 0 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .resource-card + .resource-card { margin-top: 10px; }
+  .rc-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--primary-dark);
+    margin-bottom: 4px;
+  }
+  .rc-category {
+    display: inline-block;
+    background: #E3F2FD;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .rc-detail {
+    font-size: 13px;
+    color: #333;
+    margin: 3px 0;
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .rc-detail .icon { flex-shrink: 0; font-size: 13px; margin-top: 1px; }
+  .rc-services {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  .rc-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .rc-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: opacity 0.2s;
+  }
+  .rc-btn:hover { opacity: 0.85; }
+  .rc-btn.call { background: var(--green); color: white; }
+  .rc-btn.web { background: var(--primary); color: white; }
+
+  /* SUGGESTIONS */
+  .suggestions-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+  .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .chip {
+    background: white;
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+    padding: 7px 13px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .chip:hover { background: var(--primary); color: white; }
+
+  /* TYPING INDICATOR */
+  .typing-dots {
+    display: flex;
+    gap: 4px;
+    padding: 10px 14px;
+    background: white;
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    width: fit-content;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    background: #999;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* INPUT AREA */
+  .input-area {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: #F0F0F0;
+    padding: 10px 12px 16px;
+    border-top: 1px solid #ddd;
+    z-index: 100;
+  }
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border-radius: 24px;
+    padding: 8px 8px 8px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .input-row input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    background: transparent;
+    color: var(--text);
+  }
+  .input-row input::placeholder { color: #aaa; }
+  .send-btn {
+    width: 38px; height: 38px;
+    background: var(--primary);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: var(--primary-dark); }
+  .send-btn:disabled { background: #ccc; cursor: default; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="avatar">🏘️</div>
+  <div class="header-info">
+    <div class="header-name" id="header-name">Canal Resources</div>
+    <div class="header-sub" id="header-sub">Marin County · Online</div>
+  </div>
+  <button class="lang-toggle" onclick="toggleLang()" id="lang-btn">Español</button>
+</header>
+
+<div class="proto-badge" id="proto-badge">
+  ⚗️ Prototype A — Conversational Chat | Feedback welcome!
+</div>
+
+<div class="chat-window" id="chat">
+</div>
+
+<div class="input-area">
+  <div class="input-row">
+    <input type="text" id="user-input" placeholder="Ask a question..." autocomplete="off" onkeydown="handleKey(event)">
+    <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const resources = [
+  {
+    id: 1, name: "Canal Alliance", nameEs: "Canal Alliance",
+    category: "General Services", categoryEs: "Servicios Generales",
+    phone: "4154542640", phoneDisplay: "415.454.2640",
+    address: "91 Larkspur St., San Rafael (Neighborhood Location)",
+    hours: "Mon–Thurs 8am–6pm",
+    website: "https://canalalliance.org",
+    services: "Immigration legal, Food Pantry, Housing assistance, Youth education, English classes, Workforce training",
+    servicesEs: "Legal de inmigración, Despensa de alimentos, Asistencia de vivienda, Educación juvenil, Clases de inglés, Capacitación laboral",
+    tags: ["immigration","food","housing","legal","education","employment","general","inglés","comida","trabajo","vivienda","inmigración"]
+  },
+  {
+    id: 2, name: "St. Vincent de Paul Society of Marin", nameEs: "St. Vincent de Paul de Marin",
+    category: "Food Resources", categoryEs: "Recursos de Alimentos",
+    phone: "4154543303", phoneDisplay: "415.454.3303",
+    address: "820 B St. (btwn. 2nd & 3rd), San Rafael",
+    hours: "Free Dining Room: 365 days. Breakfast 7–8am, Lunch 11am–1pm",
+    website: "https://vinnies.org",
+    services: "Free Dining Room daily, Rapid Rehousing, Homelessness Prevention, Help Desk",
+    servicesEs: "Comedor gratuito diario, Rápido acceso a vivienda, Prevención de falta de hogar, Mesa de ayuda",
+    tags: ["food","housing","emergency","dining","comida","vivienda","alimentos"]
+  },
+  {
+    id: 3, name: "Community Action Marin", nameEs: "Community Action Marin",
+    category: "General Services", categoryEs: "Servicios Generales",
+    phone: "4155267500", phoneDisplay: "415.526.7500",
+    address: "7665 Redwood Blvd., Novato",
+    hours: "Walk-In: Tues–Thurs 9:30am–4:30pm; Office: Mon–Fri 9am–5pm",
+    website: "https://camarin.org/getservices",
+    services: "Early childhood education, Home visiting, Financial coaching, Tax help, Job training, Housing case management, Emergency food, Public benefits",
+    servicesEs: "Educación temprana, Visitas al hogar, Asesoría financiera, Ayuda con impuestos, Capacitación laboral, Vivienda, Cajas de alimentos, Beneficios públicos",
+    tags: ["general","education","food","housing","employment","financial","childcare","benefits","tax","trabajo","vivienda","comida"]
+  },
+  {
+    id: 4, name: "Canal Alliance – Immigration Legal", nameEs: "Canal Alliance – Legal de Inmigración",
+    category: "Immigration", categoryEs: "Inmigración",
+    phone: "4154542640", phoneDisplay: "415.454.2640",
+    address: "711 Grand Ave., Marina Bldg #200, San Rafael (HQ – immigration only)",
+    hours: "Office: Tues–Thurs 10am–noon & 1–4:30pm",
+    website: "https://canalalliance.org",
+    services: "DACA renewal, Asylum for minors, Naturalization/Citizenship, U Visa, T Visa, VAWA, Know Your Rights",
+    servicesEs: "Renovación de DACA, Asilo para menores, Naturalización, Visa U, Visa T, VAWA, Conozca Sus Derechos",
+    tags: ["immigration","legal","daca","asylum","citizenship","inmigración","deportación","deportation","visa","ciudadanía"]
+  },
+  {
+    id: 5, name: "Immigration Institute of the Bay Area (IIBA)", nameEs: "Instituto de Inmigración del Área de la Bahía (IIBA)",
+    category: "Immigration", categoryEs: "Inmigración",
+    phone: "7079327000", phoneDisplay: "707.932.7000",
+    address: "5401 Old Redwood Hwy #104, Petaluma (serves Marin)",
+    hours: "Mon–Fri 9am–5pm; Consultations by appointment",
+    website: "https://iibayarea.org",
+    services: "DACA renewals, Naturalization & citizenship, Family petitions, U Visa, Green card renewals, Free/low-cost legal help",
+    servicesEs: "Renovaciones de DACA, Naturalización y ciudadanía, Peticiones familiares, Visa U, Renovaciones de tarjeta verde, Ayuda legal gratuita",
+    tags: ["immigration","legal","daca","citizenship","visa","inmigración","ciudadanía"]
+  },
+  {
+    id: 6, name: "Legal Aid of Marin", nameEs: "Ayuda Legal de Marin",
+    category: "Legal Services", categoryEs: "Servicios Legales",
+    phone: "4154920230", phoneDisplay: "415.492.0230",
+    address: "1401 Los Gamos Dr. #101, San Rafael",
+    hours: "Mon–Thurs 9am–5pm",
+    website: "https://legalaidmarin.org",
+    services: "Eviction defense, Tenant rights, Homelessness prevention, Wage claims, Employment law",
+    servicesEs: "Defensa contra desalojo, Derechos del inquilino, Prevención de falta de hogar, Reclamos salariales, Derecho laboral",
+    tags: ["legal","housing","employment","eviction","tenant","desalojo","inquilino","lawyer","abogado","renta"]
+  },
+  {
+    id: 7, name: "Family & Children's Law Center", nameEs: "Centro de Derecho de Familia y Niños",
+    category: "Legal Services", categoryEs: "Servicios Legales",
+    phone: "4154929230", phoneDisplay: "415.492.9230",
+    address: "1401 Los Gamos Dr. #200, San Rafael",
+    hours: "Mon–Fri 9am–5pm; Walk-in Fri by appointment",
+    website: "https://faclcmarin.org",
+    services: "Divorce, Child custody & support, Domestic violence restraining orders, Guardianship, Sliding fee scale",
+    servicesEs: "Divorcio, Custodia y manutención de hijos, Órdenes de alejamiento por violencia doméstica, Tutela, Escala de tarifas",
+    tags: ["legal","family","domestic violence","custody","divorce","violencia","familia","hijos","niños"]
+  },
+  {
+    id: 8, name: "Marin Behavioral Health & Recovery Services (BHRS)", nameEs: "BHRS – Salud Conductual y Recuperación de Marin",
+    category: "Mental Health", categoryEs: "Salud Mental",
+    phone: "8888181115", phoneDisplay: "888.818.1115",
+    address: "Serves all of Marin County",
+    hours: "Crisis: 24/7 | Peer Warmline: 855.845.7415 | Mobile Crisis: 415.473.6392",
+    website: "https://marinbhrs.org",
+    services: "Mental health screening, Substance use treatment, Crisis stabilization, Mobile crisis, Promotores Program (Latino outreach), Peer Warmline",
+    servicesEs: "Evaluación de salud mental, Tratamiento por uso de sustancias, Estabilización de crisis, Crisis móvil, Programa de Promotores, Línea de apoyo de pares",
+    tags: ["mental health","crisis","substance abuse","counseling","salud mental","depresión","ansiedad","depression","anxiety","alcohol","drogas"]
+  },
+  {
+    id: 9, name: "NAMI Marin County", nameEs: "NAMI Condado de Marin",
+    category: "Mental Health", categoryEs: "Salud Mental",
+    phone: "4154440480", phoneDisplay: "415.444.0480",
+    address: "4340 Redwood Hwy #18, San Rafael",
+    hours: "Mon–Sun 24 hours (leave message if no answer)",
+    website: "https://namimarin.org",
+    services: "Mental illness support, Family-to-Family Education Program (free), Free support groups",
+    servicesEs: "Apoyo para enfermedad mental, Programa familiar a familiar (gratuito), Grupos de apoyo gratuitos",
+    tags: ["mental health","support","education","salud mental","familia"]
+  },
+  {
+    id: 10, name: "CalHOPE Warmline", nameEs: "Línea de Apoyo CalHOPE",
+    category: "Mental Health", categoryEs: "Salud Mental",
+    phone: "8333174673", phoneDisplay: "833.317.4673 (EN) / 833.642.7696 (ES)",
+    address: "Phone & online service",
+    hours: "Mon–Sun 24 hours",
+    website: "https://calhope.org",
+    services: "Free confidential mental health support, Peer support, Help for stress, anxiety & depression",
+    servicesEs: "Apoyo de salud mental gratuito, Apoyo entre pares, Ayuda para estrés, ansiedad y depresión",
+    tags: ["mental health","crisis","warmline","phone","salud mental","ansiedad","depresión","estrés"]
+  },
+  {
+    id: 11, name: "CalFresh/SNAP (Food Stamps)", nameEs: "CalFresh/SNAP (Cupones de Alimentos)",
+    category: "Food Resources", categoryEs: "Recursos de Alimentos",
+    phone: "8774108817", phoneDisplay: "877.410.8817",
+    address: "120 North Redwood Dr., San Rafael",
+    hours: "Call Center: Mon/Tues/Wed/Fri 7:30–11:40am & 1–4pm",
+    website: "https://marinhhs.org/calfresh-snap",
+    services: "Monthly food benefits (EBT card), Eligibility screening, Application assistance",
+    servicesEs: "Beneficios mensuales de alimentos (tarjeta EBT), Evaluación de elegibilidad, Ayuda con la solicitud",
+    tags: ["food","benefits","calfresh","snap","financial","stamps","ebt","comida","alimentos","beneficios"]
+  },
+  {
+    id: 12, name: "WIC Program – Marin County", nameEs: "Programa WIC – Condado de Marin",
+    category: "Food Resources", categoryEs: "Recursos de Alimentos",
+    phone: "4154736889", phoneDisplay: "415.473.6889",
+    address: "3250 Kerner Blvd., San Rafael",
+    hours: "Mon–Fri 8am–5pm; 2nd & 4th Tues 5–7pm",
+    website: "https://marinhhs.org/wic",
+    services: "Monthly food benefits for pregnant/breastfeeding women & children under 5, Nutrition education, Breastfeeding support",
+    servicesEs: "Beneficios de alimentos para mujeres embarazadas/lactantes y niños menores de 5 años, Educación nutricional, Apoyo para la lactancia",
+    tags: ["food","wic","pregnancy","children","nutrition","embarazo","bebé","baby","niños","lactancia","comida"]
+  },
+  {
+    id: 13, name: "Marin Community Clinics", nameEs: "Clínicas Comunitarias de Marin",
+    category: "Health Resources", categoryEs: "Recursos de Salud",
+    phone: "4154481500", phoneDisplay: "415.448.1500",
+    address: "Multiple Marin locations — call or visit website",
+    hours: "Call for hours",
+    website: "https://marinclinic.org",
+    services: "Medical, behavioral health, dental care for whole family. Accepts all regardless of insurance. Sliding fee for uninsured. Medi-Cal accepted.",
+    servicesEs: "Atención médica, de salud conductual y dental para toda la familia. Acepta a todos sin importar el seguro. Tarifas según ingresos. Se acepta Medi-Cal.",
+    tags: ["health","medical","dental","medi-cal","doctor","clinic","salud","médico","dental","clínica","dientes","seguro"]
+  },
+  {
+    id: 14, name: "Marin City Health & Wellness Center", nameEs: "Centro de Salud y Bienestar de Marin City",
+    category: "Health Resources", categoryEs: "Recursos de Salud",
+    phone: "4153398813", phoneDisplay: "415.339.8813",
+    address: "100 Phillips Dr., Marin City",
+    hours: "Mon–Fri 8am–5pm",
+    website: "https://marincityclinic.org",
+    services: "Primary care, Women's health, Teen clinic, Mental health, Dental care, Substance abuse & MAT treatment, Medi-Cal/Medicare/sliding fee",
+    servicesEs: "Atención primaria, Salud de la mujer, Clínica para adolescentes, Salud mental, Atención dental, Tratamiento por abuso de sustancias, Medi-Cal/Medicare",
+    tags: ["health","medical","dental","mental health","women","teen","medi-cal","salud","médico","dental","mujer","clínica"]
+  },
+  {
+    id: 15, name: "Marin Housing Authority", nameEs: "Autoridad de Vivienda de Marin",
+    category: "Housing", categoryEs: "Vivienda",
+    phone: "4154912525", phoneDisplay: "415.491.2525",
+    address: "4020 Civic Center Dr., San Rafael",
+    hours: "Mon–Thurs 10am–4:30pm",
+    website: "https://marinhousing.org",
+    services: "Housing Choice Voucher (Section 8), Supportive housing referrals, Home buyer assistance",
+    servicesEs: "Vale de elección de vivienda (Sección 8), Referencias de vivienda de apoyo, Asistencia para compradores de vivienda",
+    tags: ["housing","section 8","voucher","rental","vivienda","alquiler","sección 8","renta","casa"]
+  },
+  {
+    id: 16, name: "Homeward Bound of Marin", nameEs: "Homeward Bound de Marin",
+    category: "Emergency & Transitional Housing", categoryEs: "Vivienda de Emergencia y Transitoria",
+    phone: "4153823363", phoneDisplay: "415.382.3363",
+    address: "1385 N. Hamilton Pkwy., Novato",
+    website: "https://hbofm.org",
+    services: "Emergency shelter for adults, families & veterans, Transitional & long-term supportive housing",
+    servicesEs: "Refugio de emergencia para adultos, familias y veteranos, Vivienda transitoria y de apoyo a largo plazo",
+    tags: ["housing","shelter","emergency","transitional","homeless","vivienda","refugio","emergencia","sin hogar"]
+  },
+  {
+    id: 17, name: "Fair Housing Advocates of Northern California", nameEs: "Defensores de Vivienda Justa del Norte de California",
+    category: "Housing Disputes", categoryEs: "Disputas de Vivienda",
+    phone: "4154575025", phoneDisplay: "415.457.5025",
+    address: "851 Irwin St. #218, San Rafael",
+    website: "https://fairhousingnorcal.org",
+    services: "Housing discrimination investigation, Pre-purchase counseling, Foreclosure prevention, Fair housing presentations",
+    servicesEs: "Investigación de discriminación de vivienda, Asesoramiento previo a la compra, Prevención de ejecuciones hipotecarias",
+    tags: ["housing","discrimination","tenant","rights","vivienda","discriminación","inquilino","derechos"]
+  },
+  {
+    id: 18, name: "CareerPoint Marin", nameEs: "CareerPoint Marin",
+    category: "Employment & Training", categoryEs: "Empleo y Capacitación",
+    phone: "4159660860", phoneDisplay: "415.966.0860",
+    address: "1800 Ignacio Blvd. #27, Novato",
+    hours: "Mon–Fri 8am–noon & 1–5pm",
+    website: "https://workforcealliancenorthbay.org",
+    services: "Career guidance, Resume assistance, Interview preparation, Job search & placement, Financial aid for vocational training",
+    servicesEs: "Orientación profesional, Ayuda con currículum, Preparación para entrevistas, Búsqueda y colocación de empleos, Ayuda financiera para capacitación",
+    tags: ["employment","job","training","career","resume","trabajo","empleo","capacitación","currículum","entrevista"]
+  },
+  {
+    id: 19, name: "Conservation Corps North Bay", nameEs: "Conservation Corps North Bay",
+    category: "Employment & Training", categoryEs: "Empleo y Capacitación",
+    phone: "4154544554", phoneDisplay: "415.454.4554",
+    address: "27 Larkspur St., San Rafael",
+    hours: "Mon–Fri 8:30am–5pm",
+    website: "https://ccnorthbay.org",
+    services: "Paid on-the-job training, Firefighting Program, Recycling Program, Land conservation, Basic education",
+    servicesEs: "Capacitación remunerada en el trabajo, Programa de bomberos, Programa de reciclaje, Conservación de tierras, Educación básica",
+    tags: ["employment","job","training","paid","work","trabajo","empleo","capacitación","pago"]
+  },
+  {
+    id: 20, name: "Center for Domestic Peace", nameEs: "Centro para la Paz Doméstica",
+    category: "Family Support", categoryEs: "Apoyo Familiar",
+    phone: "4159246616", phoneDisplay: "415.924.6616",
+    address: "734 A St., San Rafael",
+    hours: "Hotline: 24/7 | Office: Mon–Fri 9am–5pm",
+    website: "https://centerfordomesticpeace.org",
+    services: "Domestic violence services & emergency shelter, Therapy & support groups, Transitional housing, Services for survivors",
+    servicesEs: "Servicios de violencia doméstica y refugio de emergencia, Terapia y grupos de apoyo, Vivienda transitoria, Servicios para sobrevivientes",
+    tags: ["domestic violence","shelter","family","crisis","women","abuse","violencia doméstica","abuso","mujeres","refugio","familia"]
+  },
+  {
+    id: 21, name: "Pickleweed Preschool", nameEs: "Preescolar Pickleweed",
+    category: "Childcare", categoryEs: "Cuidado de Niños",
+    phone: "4154853101", phoneDisplay: "415.485.3101",
+    address: "40 Canal St., San Rafael",
+    website: "https://cityofsanrafael.org/recreation",
+    services: "State-funded preschool ages 3–5, Serves Canal Area, No school district enrollment required",
+    servicesEs: "Preescolar financiado por el estado para niños de 3 a 5 años, Sirve al área del Canal",
+    tags: ["childcare","preschool","education","children","canal","kinder","niños","guardería","preescolar"]
+  },
+  {
+    id: 22, name: "Marin Child Care Council", nameEs: "Consejo de Cuidado Infantil de Marin",
+    category: "Childcare", categoryEs: "Cuidado de Niños",
+    phone: "4154721092", phoneDisplay: "415.472.1092",
+    address: "555 Northgate Dr. #105, San Rafael",
+    hours: "Mon–Thurs 8am–4pm; Fri 8am–3pm",
+    website: "https://mc3.org",
+    services: "Childcare subsidies/vouchers for eligible families, Childcare resource & referral, CPR & safety classes",
+    servicesEs: "Subsidios/vales de cuidado infantil para familias elegibles, Recursos y referencias de cuidado infantil, Clases de RCP",
+    tags: ["childcare","subsidy","voucher","referral","daycare","niños","guardería","subsidio","cuidado"]
+  },
+  {
+    id: 23, name: "Marin Behavioral Health – Crisis Lines", nameEs: "BHRS – Líneas de Crisis de Marin",
+    category: "Crisis Lines", categoryEs: "Líneas de Crisis",
+    phone: "8888181115", phoneDisplay: "888.818.1115",
+    address: "Marin County – Call anytime",
+    hours: "Crisis Stabilization Unit: 24/7 | Mobile Crisis Team: 415.473.6392",
+    website: "https://marinbhrs.org",
+    services: "24/7 crisis support, Mobile crisis response, Crisis stabilization unit",
+    servicesEs: "Apoyo en crisis 24/7, Respuesta móvil a crisis, Unidad de estabilización de crisis",
+    tags: ["crisis","mental health","emergency","urgent","suicide","help","ayuda","crisis","emergencia","urgente"]
+  },
+  {
+    id: 24, name: "United Way Bay Area – 211", nameEs: "United Way Bay Area – 211",
+    category: "Crisis Lines", categoryEs: "Líneas de Crisis",
+    phone: "211", phoneDisplay: "Dial 211",
+    address: "Phone service – available everywhere",
+    hours: "Mon–Sun 24 hours",
+    website: "https://211bayarea.org",
+    services: "Connects to all local resources: housing, food, mental health, employment, transportation and more",
+    servicesEs: "Conecta con todos los recursos locales: vivienda, alimentos, salud mental, empleo, transporte y más",
+    tags: ["general","referral","hotline","help","crisis","all","todo","ayuda","general","recursos"]
+  },
+  {
+    id: 25, name: "National Suicide & Crisis Lifeline", nameEs: "Línea Nacional de Suicidio y Crisis",
+    category: "Crisis Lines", categoryEs: "Líneas de Crisis",
+    phone: "988", phoneDisplay: "Call or Text 988",
+    address: "Call or text – available everywhere",
+    hours: "24/7",
+    website: "https://988lifeline.org",
+    services: "Suicide prevention & crisis support. Free & confidential. Call or text 988.",
+    servicesEs: "Prevención del suicidio y apoyo en crisis. Gratuito y confidencial. Llame o envíe texto al 988.",
+    tags: ["crisis","suicide","mental health","emergency","suicidio","crisis","emergencia"]
+  },
+  {
+    id: 26, name: "Ritter Center", nameEs: "Ritter Center",
+    category: "Health Resources", categoryEs: "Recursos de Salud",
+    phone: "4154578182", phoneDisplay: "415.457.8182",
+    address: "16 Ritter St., San Rafael",
+    hours: "Office: Mon–Fri 8:30am–5pm; Clinic: Mon–Fri 8am–noon & 1–4:30pm",
+    website: "https://rittercenter.org",
+    services: "Medical, dental, therapy & psychiatry, Housing navigation, Harm reduction, Mobile behavioral health team",
+    servicesEs: "Médico, dental, terapia y psiquiatría, Navegación de vivienda, Reducción de daños, Equipo móvil de salud conductual",
+    tags: ["health","medical","dental","mental health","housing","homeless","salud","médico","vivienda"]
+  },
+  {
+    id: 27, name: "Marin Transit – Marin Access", nameEs: "Marin Transit – Marin Access",
+    category: "Transportation", categoryEs: "Transporte",
+    phone: "4154540902", phoneDisplay: "415.454.0902",
+    address: "711 Grand Ave #110, San Rafael",
+    hours: "Mon–Fri 8:30am–5pm",
+    website: "https://marintransit.org",
+    services: "Local bus routes, Marin Access for seniors & people with disabilities, Discounted fares for low-income",
+    servicesEs: "Rutas de autobús locales, Marin Access para adultos mayores y personas con discapacidad, Tarifas con descuento",
+    tags: ["transportation","bus","transit","disability","seniors","autobús","transporte","discapacidad","mayores"]
+  },
+  {
+    id: 28, name: "Center Point, Inc. (Drug & Alcohol Treatment)", nameEs: "Center Point, Inc. (Tratamiento de Drogas y Alcohol)",
+    category: "Treatment Programs", categoryEs: "Programas de Tratamiento",
+    phone: "4154566655", phoneDisplay: "415.456.6655",
+    address: "1601 Second St., San Rafael",
+    website: "https://cpinc.org",
+    services: "Drug & alcohol recovery, Residential & outpatient care, Counseling & support, Sliding scale for Marin residents",
+    servicesEs: "Recuperación de drogas y alcohol, Atención residencial y ambulatoria, Asesoramiento y apoyo, Escala de tarifas para residentes de Marin",
+    tags: ["drugs","alcohol","treatment","recovery","substance","drogas","alcohol","tratamiento","recuperación","sustancias"]
+  }
+];
+
+// ─── LANGUAGE ────────────────────────────────────────────────────────────────
+let lang = 'en';
+
+const t = {
+  en: {
+    headerName: "Canal Resources",
+    headerSub: "Marin County · Community Guide",
+    langBtn: "Español",
+    protoBadge: "⚗️ Prototype A — Conversational Chat | Feedback welcome!",
+    placeholder: "Ask a question…",
+    welcome1: "Hello! 👋 I'm here to help you find resources in the Canal community and Marin County.",
+    welcome2: "You can ask me things like:",
+    suggestions: [
+      "I need legal help",
+      "Where can I find food?",
+      "I need housing help",
+      "I need mental health support",
+      "Immigration help"
+    ],
+    notFound: "I'm sorry, I didn't find specific resources for that. Try asking about food, housing, legal help, health, or immigration — or call <strong>211</strong> to be connected to the right service.",
+    found: (n) => `I found <strong>${n} resource${n > 1 ? 's' : ''}</strong> that can help:`,
+    callBtn: "📞 Call",
+    webBtn: "🌐 Website",
+    hoursLabel: "Hours:",
+    addressLabel: "Address:",
+    servicesLabel: "Services:"
+  },
+  es: {
+    headerName: "Recursos del Canal",
+    headerSub: "Condado de Marin · Guía Comunitaria",
+    langBtn: "English",
+    protoBadge: "⚗️ Prototipo A — Chat Conversacional | ¡Sus comentarios son bienvenidos!",
+    placeholder: "Haga una pregunta…",
+    welcome1: "¡Hola! 👋 Estoy aquí para ayudarle a encontrar recursos en la comunidad del Canal y el Condado de Marin.",
+    welcome2: "Puede preguntarme cosas como:",
+    suggestions: [
+      "Necesito ayuda legal",
+      "¿Dónde encuentro comida?",
+      "Necesito ayuda con vivienda",
+      "Necesito apoyo de salud mental",
+      "Ayuda con inmigración"
+    ],
+    notFound: "Lo siento, no encontré recursos específicos para eso. Intente preguntar sobre alimentos, vivienda, ayuda legal, salud o inmigración — o llame al <strong>211</strong> para conectarse con el servicio correcto.",
+    found: (n) => `Encontré <strong>${n} recurso${n > 1 ? 's' : ''}</strong> que puede${n > 1 ? 'n' : ''} ayudar:`,
+    callBtn: "📞 Llamar",
+    webBtn: "🌐 Sitio web",
+    hoursLabel: "Horario:",
+    addressLabel: "Dirección:",
+    servicesLabel: "Servicios:"
+  }
+};
+
+function toggleLang() {
+  lang = lang === 'en' ? 'es' : 'en';
+  applyLang();
+  document.getElementById('chat').innerHTML = '';
+  showWelcome();
+}
+
+function applyLang() {
+  const tx = t[lang];
+  document.getElementById('header-name').textContent = tx.headerName;
+  document.getElementById('header-sub').textContent = tx.headerSub;
+  document.getElementById('lang-btn').textContent = tx.langBtn;
+  document.getElementById('proto-badge').textContent = tx.protoBadge;
+  document.getElementById('user-input').placeholder = tx.placeholder;
+}
+
+// ─── CHAT ENGINE ──────────────────────────────────────────────────────────────
+function getTime() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function addBotMsg(html, delay = 600) {
+  return new Promise(resolve => {
+    // Show typing
+    const typingRow = document.createElement('div');
+    typingRow.className = 'msg-row';
+    typingRow.innerHTML = `
+      <div class="bot-icon">🏘️</div>
+      <div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    `;
+    const chat = document.getElementById('chat');
+    chat.appendChild(typingRow);
+    scrollBottom();
+
+    setTimeout(() => {
+      typingRow.remove();
+      const row = document.createElement('div');
+      row.className = 'msg-row';
+      row.innerHTML = `
+        <div class="bot-icon">🏘️</div>
+        <div class="bubble bot">${html}<div class="timestamp">${getTime()}</div></div>
+      `;
+      chat.appendChild(row);
+      scrollBottom();
+      resolve();
+    }, delay);
+  });
+}
+
+function addUserMsg(text) {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `<div class="bubble user">${text}<div class="timestamp">${getTime()}</div></div>`;
+  chat.appendChild(row);
+  scrollBottom();
+}
+
+function scrollBottom() {
+  const chat = document.getElementById('chat');
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function searchResources(query) {
+  const q = query.toLowerCase();
+  const scored = resources.map(r => {
+    let score = 0;
+    r.tags.forEach(tag => { if (q.includes(tag)) score += 10; });
+    // Check individual words
+    q.split(' ').forEach(word => {
+      if (word.length < 3) return;
+      r.tags.forEach(tag => { if (tag.includes(word)) score += 5; });
+      if (r.name.toLowerCase().includes(word)) score += 3;
+      if ((lang === 'en' ? r.services : r.servicesEs).toLowerCase().includes(word)) score += 2;
+    });
+    return { ...r, score };
+  });
+  return scored.filter(r => r.score > 0).sort((a, b) => b.score - a.score).slice(0, 4);
+}
+
+function buildResourceCard(r) {
+  const tx = t[lang];
+  const name = lang === 'en' ? r.name : r.nameEs;
+  const cat = lang === 'en' ? r.category : r.categoryEs;
+  const services = lang === 'en' ? r.services : r.servicesEs;
+  return `
+    <div class="resource-card">
+      <div class="rc-name">${name}</div>
+      <span class="rc-category">${cat}</span>
+      <div class="rc-detail"><span class="icon">📍</span><span>${r.address}</span></div>
+      ${r.hours ? `<div class="rc-detail"><span class="icon">🕐</span><span>${r.hours}</span></div>` : ''}
+      <div class="rc-services">${tx.servicesLabel} ${services}</div>
+      <div class="rc-actions">
+        <a href="tel:${r.phone}" class="rc-btn call">${tx.callBtn} ${r.phoneDisplay}</a>
+        ${r.website ? `<a href="${r.website}" target="_blank" class="rc-btn web">${tx.webBtn}</a>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function buildSuggestions() {
+  const tx = t[lang];
+  return `
+    <div class="suggestions-label">${lang === 'en' ? 'Tap a question to get started:' : 'Toque una pregunta para comenzar:'}</div>
+    <div class="suggestions">
+      ${tx.suggestions.map(s => `<div class="chip" onclick="handleChip(this)">${s}</div>`).join('')}
+    </div>
+  `;
+}
+
+function handleChip(chip) {
+  const text = chip.textContent;
+  sendMessage(text);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter') sendMessage();
+}
+
+async function sendMessage(override) {
+  const input = document.getElementById('user-input');
+  const text = override || input.value.trim();
+  if (!text) return;
+  input.value = '';
+  document.getElementById('send-btn').disabled = true;
+
+  addUserMsg(text);
+  await new Promise(r => setTimeout(r, 300));
+
+  const results = searchResources(text);
+  const tx = t[lang];
+
+  if (results.length === 0) {
+    await addBotMsg(tx.notFound);
+  } else {
+    const intro = tx.found(results.length);
+    const cards = results.map(buildResourceCard).join('');
+    await addBotMsg(`${intro}${cards}`, 800);
+  }
+
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+
+function showWelcome() {
+  const tx = t[lang];
+  const chat = document.getElementById('chat');
+
+  setTimeout(() => {
+    const row = document.createElement('div');
+    row.className = 'msg-row';
+    row.innerHTML = `
+      <div class="bot-icon">🏘️</div>
+      <div class="bubble bot">
+        ${tx.welcome1}
+        <div class="timestamp">${getTime()}</div>
+      </div>
+    `;
+    chat.appendChild(row);
+    scrollBottom();
+
+    setTimeout(() => {
+      const row2 = document.createElement('div');
+      row2.className = 'msg-row';
+      row2.innerHTML = `
+        <div class="bot-icon">🏘️</div>
+        <div class="bubble bot">
+          ${tx.welcome2}
+          ${buildSuggestions()}
+          <div class="timestamp">${getTime()}</div>
+        </div>
+      `;
+      chat.appendChild(row2);
+      scrollBottom();
+    }, 800);
+  }, 400);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+applyLang();
+showWelcome();
+</script>
+</body>
+</html>
