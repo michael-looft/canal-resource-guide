@@ -34,14 +34,15 @@ Each prototype is a single self-contained HTML file with embedded CSS and JavaSc
 
 ## How It Was Built
 
-These prototypes were built using Claude AI (Anthropic) via Claude Cowork, working from a source resource guide document. The workflow:
+These prototypes were built through a back-and-forth conversation with Claude (Anthropic) in the Claude desktop app, starting from a single source resource guide. The workflow:
 
-1. Source document ingested and resource data extracted
-2. Three interaction models designed based on different user personas
-3. Each prototype built as a single HTML artifact
-4. Shared with the MPP team and community partners for feedback via the live URLs above
+1. Plain-language prompt describing what families needed: to ask for help in their own language and get matched to the right local service
+2. Claude asked clarifying questions until it was confident it understood the task, before building anything
+3. Source guide (a 35-page PDF) uploaded directly; Claude read all 35 pages and extracted the resource data
+4. Three interaction models built as separate self-contained HTML files, one per user approach
+5. Shared with the MPP team and community partners for feedback via the live URLs above
 
-Total build time from document to three live deployed prototypes: approximately one working day.
+Total build time: roughly 30 minutes of back-and-forth with Claude, from source document to three working prototypes.
 
 ## What This Demonstrates
 
